@@ -117,7 +117,22 @@
             }
         });
 
-        startCamera();
+        async function startCamera() {
+    try {
+        stream = await navigator.mediaDevices.getUserMedia({ 
+            video: { 
+                facingMode: { exact: "environment" }, // Forces back camera
+                width: { ideal: 1280 }, // HD resolution
+                height: { ideal: 720 }
+            }
+        });
+        video.srcObject = stream;
+        track = stream.getVideoTracks()[0];
+    } catch (err) {
+        alert("Error accessing the camera. Make sure to allow camera permissions!");
+        console.error(err);
+    }
+}
     </script>
 
 </body>
