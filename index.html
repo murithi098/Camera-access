@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <title>Open Camera</title>
+</head>
+<body>
+    <h2>Camera Access Page</h2>
+    <video id="camera-stream" autoplay></video>
+    <script>
+        navigator.mediaDevices.getUserMedia({ video: true })
+            .then(stream => {
+                document.getElementById('camera-stream').srcObject = stream;
+            })
+            .catch(err => alert("Camera access denied or not supported"));
+    </script>
+</body>
+</html>
