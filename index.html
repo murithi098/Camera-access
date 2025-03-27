@@ -1,122 +1,124 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <title>Open Camera</title>
-</head>
-<body>
-    <h2>Camera Access Page</h2>
-    <video id="camera-stream" autoplay></video>
-    <script>
-        navigator.mediaDevices.getUserMedia({ video: true })
-            .then(stream => {
-                document.getElementById('camera-stream').srcObject = stream;
-            })
-            .catch(err => alert("Camera access denied or not supported"));
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Camera Access Page</title>
     <style>
-        body { text-align: center; font-family: Arial, sans-serif; }
-        video { width: 100%; max-width: 500px; }
+        body {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            background-color: #f8f9fa;
+        }
+        video, canvas {
+            width: 90%;
+            max-width: 500px;
+            border-radius: 10px;
+        }
+        .controls {
+            margin-top: 10px;
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+        }
+        button {
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+        #gallery {
+            margin-top: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        .gallery-item {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+        }
     </style>
 </head>
 <body>
-    <h1>Camera Access Page</h1>
-    <video id="video" autoplay></video>
-    <button onclick="startCamera()">Start Camera</button>
-    
+
+    <video id="camera" autoplay playsinline></video>
+    <canvas id="canvas" style="display: none;"></canvas>
+
+    <div class="controls">
+        <button id="capture">📸 Capture</button>
+        <button id="flash">⚡ Flash</button>
+        <button id="zoom-in">➕ Zoom In</button>
+        <button id="zoom-out">➖ Zoom Out</button>
+    </div>
+
+    <div id="gallery"></div>
+
     <script>
-        function startCamera() {
-            navigator.mediaDevices.getUserMedia({ video: true })
-                .then(function(stream) {
-                    document.getElementById("video").srcObject = stream;
-                })
-                .catch(function(error) {
-                    console.error("Error accessing camera:", error);
+        const video = document.getElementById("camera");
+        const canvas = document.getElementById("canvas");
+        const captureBtn = document.getElementById("capture");
+        const flashBtn = document.getElementById("flash");
+        const zoomInBtn = document.getElementById("zoom-in");
+        const zoomOutBtn = document.getElementById("zoom-out");
+        const gallery = document.getElementById("gallery");
+
+        let stream;
+        let track;
+        let currentZoom = 1;
+
+        async function startCamera() {
+            try {
+                stream = await navigator.mediaDevices.getUserMedia({ 
+                    video: { facingMode: "environment" } 
                 });
-        }
-    </script>
-</body>
-</html>
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Camera Access Page</title>
-</head>
-<body>
-    <h1>Camera Access Page</h1>
-    
-    <video id="video" width="640" height="480" autoplay></video>
-    <button id="capture">Capture</button>
-    <canvas id="canvas" width="640" height="480"></canvas>
-    <br>
-    <button id="startRecording">Start Recording</button>
-    <button id="stopRecording" disabled>Stop Recording</button>
-    <video id="recordedVideo" controls></video>
-
-    <script>
-        // Camera Stream
-        const video = document.getElementById('video');
-        const canvas = document.getElementById('canvas');
-        const context = canvas.getContext('2d');
-        const captureButton = document.getElementById('capture');
-
-        // Recording
-        let mediaRecorder;
-        let recordedChunks = [];
-        const startRecordingButton = document.getElementById('startRecording');
-        const stopRecordingButton = document.getElementById('stopRecording');
-        const recordedVideo = document.getElementById('recordedVideo');
-
-        // Access the camera
-        navigator.mediaDevices.getUserMedia({ video: true, audio: true })
-            .then(stream => {
                 video.srcObject = stream;
-                mediaRecorder = new MediaRecorder(stream);
+                track = stream.getVideoTracks()[0];
+            } catch (err) {
+                alert("Camera access denied!");
+            }
+        }
 
-                mediaRecorder.ondataavailable = event => {
-                    recordedChunks.push(event.data);
-                };
+        captureBtn.addEventListener("click", () => {
+            const ctx = canvas.getContext("2d");
+            canvas.width = video.videoWidth;
+            canvas.height = video.videoHeight;
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
 
-                mediaRecorder.onstop = () => {
-                    const blob = new Blob(recordedChunks, { type: "video/webm" });
-                    recordedChunks = [];
-                    const url = URL.createObjectURL(blob);
-                    recordedVideo.src = url;
-                };
-            })
-            .catch(error => {
-                console.error("Error accessing the camera:", error);
-                alert("Camera access is required!");
-            });
-
-        // Capture Image
-        captureButton.addEventListener('click', () => {
-            context.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const img = document.createElement("img");
+            img.src = canvas.toDataURL("image/png");
+            img.classList.add("gallery-item");
+            gallery.appendChild(img);
         });
 
-        // Start Recording
-        startRecordingButton.addEventListener('click', () => {
-            recordedChunks = [];
-            mediaRecorder.start();
-            startRecordingButton.disabled = true;
-            stopRecordingButton.disabled = false;
+        flashBtn.addEventListener("click", () => {
+            if (track && track.getCapabilities().torch) {
+                let torchOn = track.getSettings().torch || false;
+                track.applyConstraints({ advanced: [{ torch: !torchOn }] });
+            } else {
+                alert("Flash not supported on this device.");
+            }
         });
 
-        // Stop Recording
-        stopRecordingButton.addEventListener('click', () => {
-            mediaRecorder.stop();
-            startRecordingButton.disabled = false;
-            stopRecordingButton.disabled = true;
+        zoomInBtn.addEventListener("click", () => {
+            if (track) {
+                currentZoom = Math.min(currentZoom + 0.1, 3);
+                track.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+            }
         });
+
+        zoomOutBtn.addEventListener("click", () => {
+            if (track) {
+                currentZoom = Math.max(currentZoom - 0.1, 1);
+                track.applyConstraints({ advanced: [{ zoom: currentZoom }] });
+            }
+        });
+
+        startCamera();
     </script>
+
 </body>
 </html>
